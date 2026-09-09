@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>فاتورة - Loudy Store</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Arial, sans-serif; }
+  body { background: #f0f2f5; padding: 20px; direction: rtl; }
+  .container { max-width: 800px; margin: 0 auto; }
+  .invoice { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.1); }
+  .header { background: linear-gradient(135deg, #6a11cb, #2575fc); color: #fff; padding: 28px; text-align: center; }
+  .header h1 { font-size: 34px; letter-spacing: 2px; }
+  .header p { margin-top: 6px; opacity: .9; font-size: 15px; }
+  .section { padding: 22px 28px; }
+  .section-title { font-size: 17px; font-weight: bold; color: #333; border-right: 4px solid #2575fc; padding-right: 10px; margin-bottom: 14px; }
+  .row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .field { flex: 1; min-width: 200px; }
+  .field label { display: block; font-size: 14px; color: #555; margin-bottom: 6px; font-weight: 600; }
+  .field input { width: 100%; padding: 11px 13px; border: 1.5px solid #ddd; border-radius: 9px; font-size: 15px; outline: none; transition: .2s; }
+  .field input:focus { border-color: #2575fc; box-shadow: 0 0 0 3px rgba(37,117,252,.12); }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  th, td { padding: 11px 10px; text-align: center; font-size: 15px; }
+  th { background: #2575fc; color: #fff; }
+  tr:nth-child(even) td { background: #f7f9ff; }
+  td input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 7px; font-size: 14px; text-align: center; outline: none; }
+  td input:focus { border-color: #2575fc; }
+  .item-total { font-weight: bold; color: #2575fc; }
+  .del-btn { background: #ff4757; color: #fff; border: none; border-radius: 7px; padding: 7px 12px; cursor: pointer; font-size: 14px; }
+  .del-btn:hover { background: #e84118; }
+  .add-btn { background: #2ed573; color: #fff; border: none; border-radius: 9px; padding: 11px 22px; cursor: pointer; font-size: 15px; font-weight: 600; margin-top: 14px; transition: .2s; }
+  .add-btn:hover { background: #26bd66; }
+  .summary { background: #f7f9ff; margin: 0 28px 22px; border-radius: 12px; padding: 18px 24px; }
+  .summary-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 16px; color: #444; }
+  .summary-row.grand { border-top: 2px dashed #ccc; margin-top: 8px; padding-top: 14px; font-size: 22px; font-weight: bold; color: #6a11cb; }
+  .thanks { text-align: center; padding: 18px 28px 30px; }
+  .thanks p { font-size: 17px; color: #666; }
+  .thanks span { font-weight: bold; color: #2575fc; }
+  .actions { text-align: center; padding: 0 28px 28px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn { padding: 13px 32px; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; transition: .2s; }
+  .btn-preview { background: linear-gradient(135deg, #6a11cb, #2575fc); color: #fff; }
+  .btn-preview:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(37,117,252,.35); }
+  .btn-print { background: #fff; color: #2575fc; border: 2px solid #2575fc; }
+  /* أسلوب النص العادي اللي بيظهر في المعاينة والصورة */
+  .plain-text { font-size: 15px; font-weight: 600; color: #333; }
+  td .plain-text { display: block; text-align: center; }
+  /* شاشة المعاينة */
+  .preview-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75);
+    z-index: 999; overflow-y: auto; padding: 20px;
+  }
+  .preview-overlay.active { display: block; }
+  .preview-box {
+    max-width: 800px; margin: 20px auto; background: #fff;
+    border-radius: 14px; overflow: hidden;
+  }
+  .preview-toolbar {
+    max-width: 800px; margin: 0 auto 20px; display: flex; gap: 10px;
+    justify-content: center; flex-wrap: wrap;
+  }
+  @media print {
+    body { background: #fff; padding: 0; }
+    .no-print, .preview-overlay { display: none !important; }
+    .invoice { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="invoice" id="invoice">
+    <div class="header">
+      <h1>✨ Loudy Store ✨</h1>
+      <p>فاتورة مبيعات</p>
+    </div>
+
+    <div class="section">
+      <div class="section-title">بيانات العميل</div>
+      <div class="row">
+        <div class="field">
+          <label>اسم العميل</label>
+          <input type="text" id="clientName" placeholder="اكتب اسم العميل">
+        </div>
+        <div class="field">
+          <label>رقم التليفون</label>
+          <input type="text" id="clientPhone" placeholder="01xxxxxxxxx">
+        </div>
+        <div class="field">
+          <label>التاريخ</label>
+          <input type="date" id="invoiceDate">
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">المنتجات</div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:40%">اسم المنتج</th>
+            <th style="width:20%">الكمية</th>
+            <th style="width:20%">السعر</th>
+            <th style="width:20%">الإجمالي</th>
+            <th class="no-print" style="width:50px"></th>
+          </tr>
+        </thead>
+        <tbody id="itemsBody"></tbody>
+      </table>
+      <button class="add-btn no-print" onclick="addItem()">➕ إضافة صنف جديد</button>
+    </div>
+
+    <div class="summary">
+      <div class="summary-row">
+        <span>إجمالي المنتجات:</span>
+        <span id="subTotal">0 ج.م</span>
+      </div>
+      <div class="summary-row">
+        <span>التوصيل:</span>
+        <span>
+          <input type="number" id="deliveryFee" value="0" min="0" step="0.5"
+                 style="width:90px;padding:6px;border:1.5px solid #ddd;border-radius:7px;text-align:center;font-size:15px;outline:none;"
+                 oninput="calcTotal()"> ج.م
+        </span>
+      </div>
+      <div class="summary-row grand">
+        <span>الإجمالي الكلي:</span>
+        <span id="grandTotal">0 ج.م</span>
+      </div>
+    </div>
+
+    <div class="thanks">
+      <p>شكراً لتعاملكم معنا ❤️ <span>Loudy Store</span> بتتمنى لكم يوم سعيد!</p>
+    </div>
+  </div>
+
+  <div class="actions no-print">
+    <button class="btn btn-preview" onclick="openPreview()">👁️ معاينة الفاتورة</button>
+    <button class="btn btn-print" onclick="window.print()">🖨️ طباعة</button>
+  </div>
+</div>
+
+<!-- شاشة المعاينة -->
+<div class="preview-overlay" id="previewOverlay">
+  <div class="preview-toolbar no-print">
+    <button class="btn btn-preview" onclick="downloadImage()">📥 تحميل كصورة</button>
+    <button class="btn btn-print" onclick="printPreview()">🖨️ طباعة</button>
+    <button class="btn btn-print" onclick="closePreview()">✖ إغلاق</button>
+  </div>
+  <div class="preview-box" id="previewBox"></div>
+</div>
+
+<script>
+  document.getElementById('invoiceDate').valueAsDate = new Date();
+
+  function addItem() {
+    const tbody = document.getElementById('itemsBody');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="text" placeholder="اسم المنتج" class="p-name"></td>
+      <td><input type="number" placeholder="0" min="0" class="p-qty" oninput="calcTotal()"></td>
+      <td><input type="number" placeholder="0" min="0" step="0.5" class="p-price" oninput="calcTotal()"></td>
+      <td class="item-total p-total">0 ج.م</td>
+      <td class="no-print"><button class="del-btn" onclick="this.closest('tr').remove(); calcTotal();">🗑️</button></td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  function calcTotal() {
+    let subTotal = 0;
+    document.querySelectorAll('#itemsBody tr').forEach(tr => {
+      const qty = parseFloat(tr.querySelector('.p-qty').value) || 0;
+      const price = parseFloat(tr.querySelector('.p-price').value) || 0;
+      const rowTotal = qty * price;
+      tr.querySelector('.p-total').textContent = rowTotal.toFixed(2) + ' ج.م';
+      subTotal += rowTotal;
+    });
+    const delivery = parseFloat(document.getElementById('deliveryFee').value) || 0;
+    document.getElementById('subTotal').textContent = subTotal.toFixed(2) + ' ج.م';
+    document.getElementById('grandTotal').textContent = (subTotal + delivery).toFixed(2) + ' ج.م';
+  }
+
+  // بناء نسخة نضيفة من الفاتورة (بدون خانات وبدون أزرار) — دي المعاينة
+  function buildCleanInvoice() {
+    const clone = document.getElementById('invoice').cloneNode(true);
+    clone.querySelectorAll('input').forEach(inp => {
+      const span = document.createElement('span');
+      span.className = 'plain-text';
+      span.textContent = inp.value || '—';
+      inp.replaceWith(span);
+    });
+    clone.querySelectorAll('.no-print').forEach(el => el.remove());
+    return clone;
+  }
+
+  function openPreview() {
+    const box = document.getElementById('previewBox');
+    box.innerHTML = '';
+    box.appendChild(buildCleanInvoice());
+    document.getElementById('previewOverlay').classList.add('active');
+  }
+
+  function closePreview() {
+    document.getElementById('previewOverlay').classList.remove('active');
+  }
+
+  async function downloadImage() {
+    // لو المعاينة مش مفتوحة، افتحها الأول عشان الصورة = المعاينة بالظبط
+    if (!document.getElementById('previewOverlay').classList.contains('active')) {
+      openPreview();
+    }
+    const previewBox = document.getElementById('previewBox');
+    const canvas = await html2canvas(previewBox, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      windowWidth: 850
+    });
+    const clientName = document.getElementById('clientName').value.trim() || 'invoice';
+    const link = document.createElement('a');
+    link.download = 'LoudyStore-' + clientName + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }
+
+  function printPreview() {
+    const box = document.getElementById('previewBox');
+    const win = window.open('', '_blank');
+    win.document.write('<html dir="rtl" lang="ar"><head><title>فاتورة Loudy Store</title>');
+    win.document.write('<style>body{font-family:Tahoma,Arial,sans-serif;margin:20px;} ' +
+      '.plain-text{font-size:15px;font-weight:600;color:#333;} td .plain-text{display:block;text-align:center;} ' +
+      '.invoice{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 0 0 1px #eee;} ' +
+      '.header{background:linear-gradient(135deg,#6a11cb,#2575fc);color:#fff;padding:28px;text-align:center;} ' +
+      '.header h1{font-size:34px;letter-spacing:2px;} .header p{margin-top:6px;opacity:.9;font-size:15px;} ' +
+      '.section{padding:22px 28px;} .section-title{font-size:17px;font-weight:bold;color:#333;border-right:4px solid #2575fc;padding-right:10px;margin-bottom:14px;} ' +
+      '.row{display:flex;gap:14px;} .field{flex:1;} .field label{display:block;font-size:14px;color:#555;margin-bottom:6px;font-weight:600;} ' +
+      'table{width:100%;border-collapse:collapse;margin-top:10px;} th,td{padding:11px 10px;text-align:center;font-size:15px;} ' +
+      'th{background:#2575fc;color:#fff;} tr:nth-child(even) td{background:#f7f9ff;} .item-total{font-weight:bold;color:#2575fc;} ' +
+      '.summary{background:#f7f9ff;margin:0 28px 22px;border-radius:12px;padding:18px 24px;} ' +
+      '.summary-row{display:flex;justify-content:space-between;padding:8px 0;font-size:16px;color:#444;} ' +
+      '.summary-row.grand{border-top:2px dashed #ccc;margin-top:8px;padding-top:14px;font-size:22px;font-weight:bold;color:#6a11cb;} ' +
+      '.thanks{text-align:center;padding:18px 28px 30px;} .thanks p{font-size:17px;color:#666;} .thanks span{font-weight:bold;color:#2575fc;}</style>');
+    win.document.write('</head><body>');
+    win.document.write(box.innerHTML);
+    win.document.write('</body></html>');
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); }, 500);
+  }
+
+  addItem();
+  addItem();
+</script>
+</body>
+</html>
