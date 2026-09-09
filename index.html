@@ -7,55 +7,75 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Arial, sans-serif; }
-  body { background: #f0f2f5; padding: 20px; direction: rtl; }
+  body { background: #fdf0f4; padding: 20px; direction: rtl; }
   .container { max-width: 800px; margin: 0 auto; }
-  .invoice { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.1); }
-  .header { background: linear-gradient(135deg, #6a11cb, #2575fc); color: #fff; padding: 28px; text-align: center; }
+  .invoice {
+    background: #fff; border-radius: 16px; overflow: hidden;
+    box-shadow: 0 4px 24px rgba(214, 51, 132, .15);
+    position: relative;
+  }
+  /* العلامة المائية */
+  .watermark {
+    position: absolute; inset: 0; display: flex;
+    align-items: center; justify-content: center;
+    pointer-events: none; z-index: 0;
+  }
+  .watermark img {
+    width: 72%; max-width: 420px; opacity: .07; filter: grayscale(10%);
+  }
+  .invoice > *:not(.watermark) { position: relative; z-index: 1; }
+
+  .header { background: linear-gradient(135deg, #ff7eb3, #ff65a3, #d63384); color: #fff; padding: 26px; text-align: center; }
+  .header img.logo {
+    width: 90px; height: 90px; object-fit: cover; border-radius: 50%;
+    border: 4px solid rgba(255,255,255,.85); box-shadow: 0 4px 14px rgba(0,0,0,.2);
+    margin-bottom: 12px;
+  }
   .header h1 { font-size: 34px; letter-spacing: 2px; }
-  .header p { margin-top: 6px; opacity: .9; font-size: 15px; }
+  .header p { margin-top: 6px; opacity: .95; font-size: 15px; }
   .section { padding: 22px 28px; }
-  .section-title { font-size: 17px; font-weight: bold; color: #333; border-right: 4px solid #2575fc; padding-right: 10px; margin-bottom: 14px; }
+  .section-title { font-size: 17px; font-weight: bold; color: #a8275f; border-right: 4px solid #ff65a3; padding-right: 10px; margin-bottom: 14px; }
   .row { display: flex; gap: 14px; flex-wrap: wrap; }
   .field { flex: 1; min-width: 200px; }
-  .field label { display: block; font-size: 14px; color: #555; margin-bottom: 6px; font-weight: 600; }
-  .field input { width: 100%; padding: 11px 13px; border: 1.5px solid #ddd; border-radius: 9px; font-size: 15px; outline: none; transition: .2s; }
-  .field input:focus { border-color: #2575fc; box-shadow: 0 0 0 3px rgba(37,117,252,.12); }
+  .field label { display: block; font-size: 14px; color: #b34a78; margin-bottom: 6px; font-weight: 600; }
+  .field input { width: 100%; padding: 11px 13px; border: 1.5px solid #f3c2d6; border-radius: 9px; font-size: 15px; outline: none; transition: .2s; background: #fffafc; }
+  .field input:focus { border-color: #ff65a3; box-shadow: 0 0 0 3px rgba(255,101,163,.15); }
   table { width: 100%; border-collapse: collapse; margin-top: 10px; }
   th, td { padding: 11px 10px; text-align: center; font-size: 15px; }
-  th { background: #2575fc; color: #fff; }
-  tr:nth-child(even) td { background: #f7f9ff; }
-  td input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 7px; font-size: 14px; text-align: center; outline: none; }
-  td input:focus { border-color: #2575fc; }
-  .item-total { font-weight: bold; color: #2575fc; }
-  .del-btn { background: #ff4757; color: #fff; border: none; border-radius: 7px; padding: 7px 12px; cursor: pointer; font-size: 14px; }
-  .del-btn:hover { background: #e84118; }
-  .add-btn { background: #2ed573; color: #fff; border: none; border-radius: 9px; padding: 11px 22px; cursor: pointer; font-size: 15px; font-weight: 600; margin-top: 14px; transition: .2s; }
-  .add-btn:hover { background: #26bd66; }
-  .summary { background: #f7f9ff; margin: 0 28px 22px; border-radius: 12px; padding: 18px 24px; }
-  .summary-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 16px; color: #444; }
-  .summary-row.grand { border-top: 2px dashed #ccc; margin-top: 8px; padding-top: 14px; font-size: 22px; font-weight: bold; color: #6a11cb; }
-  .summary-row.paid { font-size: 17px; font-weight: 600; color: #2ed573; }
-  .summary-row.remaining { font-size: 18px; font-weight: bold; color: #e84118; }
+  th { background: linear-gradient(135deg, #ff7eb3, #d63384); color: #fff; }
+  tr:nth-child(even) td { background: #fff3f8; }
+  td input { width: 100%; padding: 8px; border: 1px solid #f3c2d6; border-radius: 7px; font-size: 14px; text-align: center; outline: none; background: #fffafc; }
+  td input:focus { border-color: #ff65a3; }
+  .item-total { font-weight: bold; color: #d63384; }
+  .del-btn { background: #ff758f; color: #fff; border: none; border-radius: 7px; padding: 7px 12px; cursor: pointer; font-size: 14px; }
+  .del-btn:hover { background: #e75480; }
+  .add-btn { background: linear-gradient(135deg, #ffb6c9, #ff65a3); color: #fff; border: none; border-radius: 9px; padding: 11px 22px; cursor: pointer; font-size: 15px; font-weight: 600; margin-top: 14px; transition: .2s; }
+  .add-btn:hover { background: #ff65a3; }
+  .summary { background: #fff3f8; margin: 0 28px 22px; border-radius: 12px; padding: 18px 24px; border: 1.5px dashed #f5b3cd; }
+  .summary-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 16px; color: #7a2c4e; }
+  .summary-row.grand { border-top: 2px dashed #f0a6c4; margin-top: 8px; padding-top: 14px; font-size: 22px; font-weight: bold; color: #d63384; }
+  .summary-row.paid { font-size: 17px; font-weight: 600; color: #2fbf71; }
+  .summary-row.remaining { font-size: 18px; font-weight: bold; color: #e75480; }
   .thanks { text-align: center; padding: 18px 28px 30px; }
-  .thanks p { font-size: 17px; color: #666; }
-  .thanks span { font-weight: bold; color: #2575fc; }
+  .thanks p { font-size: 17px; color: #b34a78; }
+  .thanks span { font-weight: bold; color: #d63384; }
   .actions { text-align: center; padding: 0 28px 28px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
   .btn { padding: 13px 32px; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; transition: .2s; }
-  .btn-preview { background: linear-gradient(135deg, #6a11cb, #2575fc); color: #fff; }
-  .btn-preview:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(37,117,252,.35); }
-  .btn-print { background: #fff; color: #2575fc; border: 2px solid #2575fc; }
+  .btn-preview { background: linear-gradient(135deg, #ff7eb3, #d63384); color: #fff; }
+  .btn-preview:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(214,51,132,.35); }
+  .btn-print { background: #fff; color: #d63384; border: 2px solid #ff65a3; }
   /* أسلوب النص العادي اللي بيظهر في المعاينة والصورة */
-  .plain-text { font-size: 15px; font-weight: 600; color: #333; }
+  .plain-text { font-size: 15px; font-weight: 600; color: #7a2c4e; }
   td .plain-text { display: block; text-align: center; }
   /* شاشة المعاينة */
   .preview-overlay {
-    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75);
+    display: none; position: fixed; inset: 0; background: rgba(60, 10, 35, .8);
     z-index: 999; overflow-y: auto; padding: 20px;
   }
   .preview-overlay.active { display: block; }
   .preview-box {
     max-width: 800px; margin: 20px auto; background: #fff;
-    border-radius: 14px; overflow: hidden;
+    border-radius: 16px; overflow: hidden;
   }
   .preview-toolbar {
     max-width: 800px; margin: 0 auto 20px; display: flex; gap: 10px;
@@ -71,7 +91,13 @@
 <body>
 <div class="container">
   <div class="invoice" id="invoice">
+    <!-- العلامة المائية باللوجو -->
+    <div class="watermark">
+      <img src="https://i.postimg.cc/PJX71Njr/IMG-20260829-WA0084.jpg" alt="">
+    </div>
+
     <div class="header">
+      <img class="logo" src="https://i.postimg.cc/PJX71Njr/IMG-20260829-WA0084.jpg" alt="Loudy Store Logo">
       <h1>✨ Loudy Store ✨</h1>
       <p>فاتورة مبيعات</p>
     </div>
@@ -120,7 +146,7 @@
         <span>التوصيل:</span>
         <span>
           <input type="number" id="deliveryFee" value="0" min="0" step="0.5"
-                 style="width:90px;padding:6px;border:1.5px solid #ddd;border-radius:7px;text-align:center;font-size:15px;outline:none;"
+                 style="width:90px;padding:6px;border:1.5px solid #f3c2d6;border-radius:7px;text-align:center;font-size:15px;outline:none;"
                  oninput="calcTotal()"> ج.م
         </span>
       </div>
@@ -132,7 +158,7 @@
         <span>المدفوع:</span>
         <span>
           <input type="number" id="paidAmount" value="0" min="0" step="0.5"
-                 style="width:90px;padding:6px;border:1.5px solid #2ed573;border-radius:7px;text-align:center;font-size:15px;outline:none;color:#2ed573;font-weight:bold;"
+                 style="width:90px;padding:6px;border:1.5px solid #2fbf71;border-radius:7px;text-align:center;font-size:15px;outline:none;color:#2fbf71;font-weight:bold;"
                  oninput="calcTotal()"> ج.م
         </span>
       </div>
@@ -164,6 +190,7 @@
 </div>
 
 <script>
+  const LOGO_URL = 'https://i.postimg.cc/PJX71Njr/IMG-20260829-WA0084.jpg';
   document.getElementById('invoiceDate').valueAsDate = new Date();
 
   function addItem() {
@@ -244,21 +271,25 @@
     const box = document.getElementById('previewBox');
     const win = window.open('', '_blank');
     win.document.write('<html dir="rtl" lang="ar"><head><title>فاتورة Loudy Store</title>');
-    win.document.write('<style>body{font-family:Tahoma,Arial,sans-serif;margin:20px;} ' +
-      '.plain-text{font-size:15px;font-weight:600;color:#333;} td .plain-text{display:block;text-align:center;} ' +
-      '.invoice{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 0 0 1px #eee;} ' +
-      '.header{background:linear-gradient(135deg,#6a11cb,#2575fc);color:#fff;padding:28px;text-align:center;} ' +
-      '.header h1{font-size:34px;letter-spacing:2px;} .header p{margin-top:6px;opacity:.9;font-size:15px;} ' +
-      '.section{padding:22px 28px;} .section-title{font-size:17px;font-weight:bold;color:#333;border-right:4px solid #2575fc;padding-right:10px;margin-bottom:14px;} ' +
-      '.row{display:flex;gap:14px;} .field{flex:1;} .field label{display:block;font-size:14px;color:#555;margin-bottom:6px;font-weight:600;} ' +
+    win.document.write('<style>body{font-family:Tahoma,Arial,sans-serif;margin:20px;background:#fff;} ' +
+      '.invoice{position:relative;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 0 0 1px #f9d4e3;} ' +
+      '.watermark{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0;} ' +
+      '.watermark img{width:72%;max-width:420px;opacity:.07;} ' +
+      '.invoice>*:not(.watermark){position:relative;z-index:1;} ' +
+      '.plain-text{font-size:15px;font-weight:600;color:#7a2c4e;} td .plain-text{display:block;text-align:center;} ' +
+      '.header{background:linear-gradient(135deg,#ff7eb3,#ff65a3,#d63384);color:#fff;padding:26px;text-align:center;} ' +
+      '.header img.logo{width:90px;height:90px;object-fit:cover;border-radius:50%;border:4px solid rgba(255,255,255,.85);box-shadow:0 4px 14px rgba(0,0,0,.2);margin-bottom:12px;} ' +
+      '.header h1{font-size:34px;letter-spacing:2px;} .header p{margin-top:6px;opacity:.95;font-size:15px;} ' +
+      '.section{padding:22px 28px;} .section-title{font-size:17px;font-weight:bold;color:#a8275f;border-right:4px solid #ff65a3;padding-right:10px;margin-bottom:14px;} ' +
+      '.row{display:flex;gap:14px;} .field{flex:1;} .field label{display:block;font-size:14px;color:#b34a78;margin-bottom:6px;font-weight:600;} ' +
       'table{width:100%;border-collapse:collapse;margin-top:10px;} th,td{padding:11px 10px;text-align:center;font-size:15px;} ' +
-      'th{background:#2575fc;color:#fff;} tr:nth-child(even) td{background:#f7f9ff;} .item-total{font-weight:bold;color:#2575fc;} ' +
-      '.summary{background:#f7f9ff;margin:0 28px 22px;border-radius:12px;padding:18px 24px;} ' +
-      '.summary-row{display:flex;justify-content:space-between;padding:8px 0;font-size:16px;color:#444;} ' +
-      '.summary-row.grand{border-top:2px dashed #ccc;margin-top:8px;padding-top:14px;font-size:22px;font-weight:bold;color:#6a11cb;} ' +
-      '.summary-row.paid{font-size:17px;font-weight:600;color:#2ed573;} ' +
-      '.summary-row.remaining{font-size:18px;font-weight:bold;color:#e84118;} ' +
-      '.thanks{text-align:center;padding:18px 28px 30px;} .thanks p{font-size:17px;color:#666;} .thanks span{font-weight:bold;color:#2575fc;}</style>');
+      'th{background:linear-gradient(135deg,#ff7eb3,#d63384);color:#fff;} tr:nth-child(even) td{background:#fff3f8;} .item-total{font-weight:bold;color:#d63384;} ' +
+      '.summary{background:#fff3f8;margin:0 28px 22px;border-radius:12px;padding:18px 24px;border:1.5px dashed #f5b3cd;} ' +
+      '.summary-row{display:flex;justify-content:space-between;padding:8px 0;font-size:16px;color:#7a2c4e;} ' +
+      '.summary-row.grand{border-top:2px dashed #f0a6c4;margin-top:8px;padding-top:14px;font-size:22px;font-weight:bold;color:#d63384;} ' +
+      '.summary-row.paid{font-size:17px;font-weight:600;color:#2fbf71;} ' +
+      '.summary-row.remaining{font-size:18px;font-weight:bold;color:#e75480;} ' +
+      '.thanks{text-align:center;padding:18px 28px 30px;} .thanks p{font-size:17px;color:#b34a78;} .thanks span{font-weight:bold;color:#d63384;}</style>');
     win.document.write('</head><body>');
     win.document.write(box.innerHTML);
     win.document.write('</body></html>');
