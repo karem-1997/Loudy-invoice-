@@ -5,17 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>فاتورة - Loudy Store</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Arial, sans-serif; }
   body { background: linear-gradient(180deg, #ffeef5, #fdf0f6); padding: 16px; direction: rtl; }
   .container { max-width: 430px; margin: 0 auto; }
+
+  /* تبويبات علوية */
+  .tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+  .tab {
+    flex: 1; padding: 11px; border: none; border-radius: 12px; font-size: 14px; font-weight: 800;
+    cursor: pointer; background: #fff; color: #d63384; border: 2px solid #ff65a3; transition: .2s;
+  }
+  .tab.active { background: linear-gradient(135deg, #ff7eb3, #d63384); color: #fff; border-color: transparent; box-shadow: 0 4px 14px rgba(214,51,132,.35); }
+  .db-status { text-align: center; font-size: 11px; color: #b34a78; margin: -6px 0 10px; }
 
   .invoice {
     background: #fff; border-radius: 22px; overflow: hidden;
     box-shadow: 0 8px 30px rgba(214, 51, 132, .18);
     position: relative;
   }
-  /* العلامة المائية */
   .watermark {
     position: absolute; inset: 0; display: flex;
     align-items: center; justify-content: center;
@@ -24,10 +34,9 @@
   .watermark img { width: 78%; max-width: 320px; opacity: .06; border-radius: 50%; }
   .invoice > *:not(.watermark) { position: relative; z-index: 1; }
 
-  /* الهيدر المزخرف */
   .header {
     background: linear-gradient(160deg, #ff9ec7 0%, #ff65a3 45%, #d63384 100%);
-    color: #fff; padding: 16px 16px 14px; text-align: center; position: relative; overflow: hidden;
+    color: #fff; padding: 14px 16px 12px; text-align: center; position: relative; overflow: hidden;
   }
   .header::before, .header::after {
     content: ''; position: absolute; border-radius: 50%; background: rgba(255,255,255,.12);
@@ -39,8 +48,8 @@
     border: 4px solid #fff; box-shadow: 0 6px 18px rgba(0,0,0,.25);
     position: relative; z-index: 1;
   }
-  .header h1 { font-size: 21px; letter-spacing: .5px; margin-top: 8px; position: relative; z-index: 1; }
-  .header p { margin-top: 3px; opacity: .95; font-size: 12.5px; position: relative; z-index: 1; }
+  .header h1 { font-size: 21px; margin-top: 6px; position: relative; z-index: 1; }
+  .header p { margin-top: 2px; opacity: .95; font-size: 12px; position: relative; z-index: 1; }
   .sparkle { position: absolute; color: rgba(255,255,255,.55); font-size: 16px; z-index: 1; }
 
   .section { padding: 10px 16px 0; }
@@ -75,7 +84,6 @@
   }
   .add-btn:hover { opacity: .92; }
 
-  /* الملخص ككارت أنيق */
   .summary {
     background: linear-gradient(160deg, #fff3f8, #ffe4ef);
     margin: 10px 14px 10px; border-radius: 16px; padding: 10px 14px;
@@ -93,9 +101,7 @@
     width: 80px; padding: 5px; border: 1.5px solid #f6c6da; border-radius: 8px;
     text-align: center; font-size: 13px; outline: none; background: #fff;
   }
-  .summary input.fee.paid-in {
-    border-color: #2fbf71; color: #2fbf71; font-weight: 800;
-  }
+  .summary input.fee.paid-in { border-color: #2fbf71; color: #2fbf71; font-weight: 800; }
 
   .thanks { text-align: center; padding: 6px 16px 14px; }
   .thanks .line { width: 60px; height: 3px; border-radius: 3px; background: linear-gradient(90deg, #ff9ec7, #d63384); margin: 0 auto 8px; }
@@ -103,9 +109,29 @@
   .thanks span { font-weight: 800; color: #d63384; }
 
   .actions { text-align: center; padding: 4px 0 24px; display: flex; gap: 10px; justify-content: center; }
-  .btn { padding: 12px 22px; border: none; border-radius: 12px; font-size: 14px; font-weight: 800; cursor: pointer; transition: .2s; }
+  .btn { padding: 12px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 800; cursor: pointer; transition: .2s; }
   .btn-preview { background: linear-gradient(135deg, #ff7eb3, #d63384); color: #fff; box-shadow: 0 4px 14px rgba(214,51,132,.35); flex: 1; }
+  .btn-save { background: linear-gradient(135deg, #2fbf71, #1d9e5b); color: #fff; box-shadow: 0 4px 14px rgba(47,191,113,.35); flex: 1; }
   .btn-print { background: #fff; color: #d63384; border: 2px solid #ff65a3; }
+  .inv-num { font-size: 11px; opacity: .92; margin-top: 3px; position: relative; z-index: 1; font-weight: 700; }
+  .edit-badge {
+    display: none; background: #fff3d6; border: 1.5px solid #f0c75e; color: #8a6d1a;
+    border-radius: 12px; padding: 9px 12px; font-size: 13px; font-weight: 800;
+    margin-bottom: 10px; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .edit-badge button { background: linear-gradient(135deg,#ff7eb3,#d63384); color:#fff; border:none; border-radius:9px; padding:6px 12px; font-size:12px; font-weight:800; cursor:pointer; }
+  .mini-edit { background:#fff3d6; color:#8a6d1a; border:1.5px solid #f0c75e; }
+  .mini-pay { background:#e7f9ef; color:#1d9e5b; border:1.5px solid #a8e6c3; }
+  .chips { display:flex; gap:6px; margin-bottom:10px; }
+  .chip {
+    flex:1; padding:8px 2px; border-radius:10px; border:1.5px solid #f6c6da;
+    background:#fff; color:#b34a78; font-size:11.5px; font-weight:800; cursor:pointer;
+  }
+  .chip.active { background:linear-gradient(135deg,#ff7eb3,#d63384); color:#fff; border-color:transparent; }
+  .debt-badge {
+    display:inline-block; background:#ffe4ec; color:#e75480; border:1px solid #f5b3cd;
+    border-radius:8px; padding:2px 8px; font-size:11px; font-weight:800; margin-top:5px;
+  }
 
   .plain-text { font-size: 13px; font-weight: 700; color: #7a2c4e; }
   td .plain-text { display: block; text-align: center; }
@@ -118,99 +144,160 @@
   .preview-box { max-width: 430px; margin: 10px auto; background: #fff; border-radius: 22px; overflow: hidden; }
   .preview-toolbar { max-width: 430px; margin: 0 auto 14px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
 
+  /* قسم الفواتير المحفوظة */
+  #savedView { display: none; }
+  .search-box { position: relative; margin-bottom: 12px; }
+  .search-box input {
+    width: 100%; padding: 12px 40px 12px 12px; border: 1.5px solid #f6c6da; border-radius: 12px;
+    font-size: 14px; outline: none; background: #fffafc; text-align: right;
+  }
+  .search-box input:focus { border-color: #ff65a3; box-shadow: 0 0 0 3px rgba(255,101,163,.14); }
+  .search-box .icon { position: absolute; top: 11px; right: 12px; font-size: 16px; }
+  .inv-card {
+    background: #fff; border-radius: 14px; padding: 12px 14px; margin-bottom: 10px;
+    box-shadow: 0 3px 12px rgba(214,51,132,.12); border: 1.5px solid #fad6e5;
+  }
+  .inv-card .row1 { display: flex; justify-content: space-between; align-items: center; }
+  .inv-card .name { font-size: 15px; font-weight: 800; color: #7a2c4e; }
+  .inv-card .total { font-size: 14px; font-weight: 800; color: #d63384; white-space: nowrap; }
+  .inv-card .meta { font-size: 12px; color: #b34a78; margin-top: 3px; }
+  .inv-card .btns { display: flex; gap: 8px; margin-top: 9px; }
+  .mini-btn { flex: 1; padding: 8px; border: none; border-radius: 9px; font-size: 13px; font-weight: 800; cursor: pointer; }
+  .mini-view { background: linear-gradient(135deg, #ff7eb3, #d63384); color: #fff; }
+  .mini-del { background: #ffe4ec; color: #e75480; border: 1.5px solid #f5b3cd; }
+  .empty-msg { text-align: center; color: #b34a78; font-size: 14px; padding: 30px 10px; }
+
+  .toast {
+    display: none; position: fixed; bottom: 24px; right: 50%; transform: translateX(50%);
+    background: linear-gradient(135deg, #2fbf71, #1d9e5b); color: #fff; padding: 12px 24px;
+    border-radius: 12px; font-size: 14px; font-weight: 800; z-index: 1000;
+    box-shadow: 0 6px 20px rgba(0,0,0,.25);
+  }
+
   @media print {
     body { background: #fff; padding: 0; }
-    .no-print, .preview-overlay { display: none !important; }
+    .no-print, .preview-overlay, .tabs, .db-status { display: none !important; }
     .invoice { box-shadow: none; max-width: 100%; }
   }
 </style>
 </head>
 <body>
 <div class="container">
-  <div class="invoice" id="invoice">
-    <!-- العلامة المائية باللوجو -->
-    <div class="watermark">
-      <img src="https://i.postimg.cc/PJX71Njr/IMG-20260829-WA0084.jpg" alt="">
+
+  <div class="tabs no-print">
+    <button class="tab active" id="tabNew" onclick="newInvoice()">🧾 فاتورة جديدة</button>
+    <button class="tab" id="tabSaved" onclick="switchTab('saved')">📁 الفواتير</button>
+  </div>
+  <div class="db-status" id="dbStatus">⏳ جاري الاتصال بقاعدة البيانات...</div>
+
+  <div class="edit-badge" id="editBadge">
+    <span id="editBadgeText">✏️ بتعدّل فاتورة</span>
+    <button onclick="newInvoice()">🧾 فاتورة جديدة</button>
+  </div>
+
+  <!-- ============ واجهة الفاتورة ============ -->
+  <div id="newView">
+    <div class="invoice" id="invoice">
+      <div class="watermark">
+        <img src="https://i.postimg.cc/PJX71Njr/IMG-20260829-WA0084.jpg" alt="">
+      </div>
+
+      <div class="header">
+        <span class="sparkle" style="top:18px;left:26px">✦</span>
+        <span class="sparkle" style="top:40px;right:36px;font-size:12px">✧</span>
+        <span class="sparkle" style="bottom:24px;left:60px;font-size:11px">✦</span>
+        <img class="logo" src="https://i.postimg.cc/PJX71Njr/IMG-20260829-WA0084.jpg" alt="Loudy Store Logo">
+        <h1>✨ Loudy Store ✨</h1>
+        <p>💖 فاتورة مبيعات 💖</p>
+        <p class="inv-num">🧾 رقم الفاتورة: <span id="invNumber">جديدة</span></p>
+      </div>
+
+      <div class="section">
+        <div class="section-title">🌸 بيانات العميل</div>
+        <div style="display:flex;gap:10px;">
+          <div class="field" style="flex:1;min-width:0;">
+            <label>اسم العميل</label>
+            <input type="text" id="clientName" placeholder="اسم العميل">
+          </div>
+          <div class="field" style="flex:1;min-width:0;">
+            <label>رقم التليفون</label>
+            <input type="text" id="clientPhone" placeholder="01xxxxxxxxx">
+          </div>
+        </div>
+        <div class="field">
+          <label>التاريخ</label>
+          <input type="date" id="invoiceDate">
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">🛍️ المنتجات</div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width:36%">المنتج</th>
+              <th style="width:18%">الكمية</th>
+              <th style="width:20%">السعر</th>
+              <th style="width:22%">الإجمالي</th>
+              <th class="no-print" style="width:34px"></th>
+            </tr>
+          </thead>
+          <tbody id="itemsBody"></tbody>
+        </table>
+        <button class="add-btn no-print" onclick="addItem()">➕ إضافة صنف جديد</button>
+      </div>
+
+      <div class="summary">
+        <div class="summary-row">
+          <span>إجمالي المنتجات</span>
+          <span id="subTotal">0 ج.م</span>
+        </div>
+        <div class="summary-row">
+          <span>التوصيل 🚚</span>
+          <span>
+            <input type="number" class="fee" id="deliveryFee" value="0" min="0" step="0.5" oninput="calcTotal()"> ج.م
+          </span>
+        </div>
+        <div class="summary-row grand">
+          <span>الإجمالي الكلي 💖</span>
+          <span id="grandTotal">0 ج.م</span>
+        </div>
+        <div class="summary-row paid">
+          <span>المدفوع ✅</span>
+          <span>
+            <input type="number" class="fee paid-in" id="paidAmount" value="0" min="0" step="0.5" oninput="calcTotal()"> ج.م
+          </span>
+        </div>
+        <div class="summary-row remaining">
+          <span>المتبقي 💳</span>
+          <span id="remaining">0 ج.م</span>
+        </div>
+      </div>
+
+      <div class="thanks">
+        <div class="line"></div>
+        <p>شكراً لثقتكم فينا ❤️<br><span>Loudy Store</span> بتتمنى لكم يوم سعيد!</p>
+      </div>
     </div>
 
-    <div class="header">
-      <span class="sparkle" style="top:18px;left:26px">✦</span>
-      <span class="sparkle" style="top:40px;right:36px;font-size:12px">✧</span>
-      <span class="sparkle" style="bottom:24px;left:60px;font-size:11px">✦</span>
-      <img class="logo" src="https://i.postimg.cc/PJX71Njr/IMG-20260829-WA0084.jpg" alt="Loudy Store Logo">
-      <h1>✨ Loudy Store ✨</h1>
-      <p>💖 فاتورة مبيعات 💖</p>
-    </div>
-
-    <div class="section">
-      <div class="section-title">🌸 بيانات العميل</div>
-      <div class="field">
-        <label>اسم العميل</label>
-        <input type="text" id="clientName" placeholder="اكتب اسم العميل">
-      </div>
-      <div class="field">
-        <label>رقم التليفون</label>
-        <input type="text" id="clientPhone" placeholder="01xxxxxxxxx">
-      </div>
-      <div class="field">
-        <label>التاريخ</label>
-        <input type="date" id="invoiceDate">
-      </div>
-    </div>
-
-    <div class="section">
-      <div class="section-title">🛍️ المنتجات</div>
-      <table>
-        <thead>
-          <tr>
-            <th style="width:36%">المنتج</th>
-            <th style="width:18%">الكمية</th>
-            <th style="width:20%">السعر</th>
-            <th style="width:22%">الإجمالي</th>
-            <th class="no-print" style="width:34px"></th>
-          </tr>
-        </thead>
-        <tbody id="itemsBody"></tbody>
-      </table>
-      <button class="add-btn no-print" onclick="addItem()">➕ إضافة صنف جديد</button>
-    </div>
-
-    <div class="summary">
-      <div class="summary-row">
-        <span>إجمالي المنتجات</span>
-        <span id="subTotal">0 ج.م</span>
-      </div>
-      <div class="summary-row">
-        <span>التوصيل 🚚</span>
-        <span>
-          <input type="number" class="fee" id="deliveryFee" value="0" min="0" step="0.5" oninput="calcTotal()"> ج.م
-        </span>
-      </div>
-      <div class="summary-row grand">
-        <span>الإجمالي الكلي 💖</span>
-        <span id="grandTotal">0 ج.م</span>
-      </div>
-      <div class="summary-row paid">
-        <span>المدفوع ✅</span>
-        <span>
-          <input type="number" class="fee paid-in" id="paidAmount" value="0" min="0" step="0.5" oninput="calcTotal()"> ج.م
-        </span>
-      </div>
-      <div class="summary-row remaining">
-        <span>المتبقي 💳</span>
-        <span id="remaining">0 ج.م</span>
-      </div>
-    </div>
-
-    <div class="thanks">
-      <div class="line"></div>
-      <p>شكراً لثقتكم فينا ❤️<br><span>Loudy Store</span> بتتمنى لكم يوم سعيد!</p>
+    <div class="actions no-print">
+      <button class="btn btn-save" onclick="saveInvoice()">💾 حفظ ومعاينة</button>
+      <button class="btn btn-print" onclick="window.print()">🖨️</button>
     </div>
   </div>
 
-  <div class="actions no-print">
-    <button class="btn btn-preview" onclick="openPreview()">👁️ معاينة الفاتورة</button>
-    <button class="btn btn-print" onclick="window.print()">🖨️ طباعة</button>
+  <!-- ============ واجهة الفواتير المحفوظة ============ -->
+  <div id="savedView">
+    <div class="chips">
+      <button class="chip active" id="chipAll" onclick="setFilter('all')">📋 الكل</button>
+      <button class="chip" id="chipDebt" onclick="setFilter('debt')">🔴 عليهم مديونية</button>
+      <button class="chip" id="chipPaid" onclick="setFilter('paid')">🟢 مدفوعة بالكامل</button>
+    </div>
+    <div class="search-box">
+      <span class="icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="ابحث باسم العميل أو رقم التليفون..." oninput="renderSaved()">
+    </div>
+    <div id="savedList"></div>
   </div>
 </div>
 
@@ -224,11 +311,44 @@
   <div class="preview-box" id="previewBox"></div>
 </div>
 
+<div class="toast" id="toast"></div>
+
 <script>
-  const LOGO_URL = 'https://i.postimg.cc/PJX71Njr/IMG-20260829-WA0084.jpg';
+  // ================== Firebase ==================
+  const firebaseConfig = {
+    apiKey: "AIzaSyDqxFPJFzVwiueAwojbgOgJPvzRSVAv3i4",
+    authDomain: "loudy-invoice.firebaseapp.com",
+    databaseURL: "https://loudy-invoice-default-rtdb.firebaseio.com",
+    projectId: "loudy-invoice",
+    storageBucket: "loudy-invoice.firebasestorage.app",
+    messagingSenderId: "275425612794",
+    appId: "1:275425612794:web:da35e68ba085b087334a43"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  let allInvoices = {};
+
+  db.ref('invoices').on('value', snap => {
+    allInvoices = snap.val() || {};
+    document.getElementById('dbStatus').textContent = '✅ متصل بقاعدة البيانات';
+    renderSaved();
+  }, err => {
+    document.getElementById('dbStatus').textContent = '❌ مشكلة في الاتصال — تأكد من النت';
+  });
+
+  // ================== التبويبات ==================
+  function switchTab(tab) {
+    document.getElementById('tabNew').classList.toggle('active', tab === 'new');
+    document.getElementById('tabSaved').classList.toggle('active', tab === 'saved');
+    document.getElementById('newView').style.display = tab === 'new' ? 'block' : 'none';
+    document.getElementById('savedView').style.display = tab === 'saved' ? 'block' : 'none';
+    if (tab === 'saved') renderSaved();
+  }
+
+  // ================== الفاتورة ==================
   document.getElementById('invoiceDate').valueAsDate = new Date();
 
-  function addItem() {
+  function addItem(name, qty, price) {
     const tbody = document.getElementById('itemsBody');
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -238,7 +358,14 @@
       <td class="item-total p-total">0 ج.م</td>
       <td class="no-print"><button class="del-btn" onclick="this.closest('tr').remove(); calcTotal();">🗑️</button></td>
     `;
+    if (name !== undefined) tr.querySelector('.p-name').value = name;
+    if (qty !== undefined) tr.querySelector('.p-qty').value = qty;
+    if (price !== undefined) tr.querySelector('.p-price').value = price;
     tbody.appendChild(tr);
+  }
+
+  function clearItems() {
+    document.getElementById('itemsBody').innerHTML = '';
   }
 
   function calcTotal() {
@@ -257,9 +384,207 @@
     document.getElementById('subTotal').textContent = subTotal.toFixed(2) + ' ج.م';
     document.getElementById('grandTotal').textContent = grandTotal.toFixed(2) + ' ج.م';
     document.getElementById('remaining').textContent = remaining.toFixed(2) + ' ج.م';
+    return { subTotal, delivery, grandTotal, paid, remaining };
   }
 
-  // نسخة نضيفة للمعاينة (بدون خانات وأزرار)
+  function collectItems() {
+    const items = [];
+    document.querySelectorAll('#itemsBody tr').forEach(tr => {
+      const name = tr.querySelector('.p-name').value.trim();
+      const qty = parseFloat(tr.querySelector('.p-qty').value) || 0;
+      const price = parseFloat(tr.querySelector('.p-price').value) || 0;
+      if (name || qty || price) items.push({ name, qty, price });
+    });
+    return items;
+  }
+
+  // ================== الحفظ ==================
+  let editingId = null;
+
+  function saveInvoice() {
+    const name = document.getElementById('clientName').value.trim();
+    if (!name) { showToast('⚠️ اكتب اسم العميل الأول'); return; }
+    const items = collectItems();
+    if (!items.length) { showToast('⚠️ ضيف منتج واحد على الأقل'); return; }
+    const totals = calcTotal();
+    const base = {
+      clientName: name,
+      clientPhone: document.getElementById('clientPhone').value.trim(),
+      date: document.getElementById('invoiceDate').value,
+      items: items,
+      subTotal: totals.subTotal,
+      delivery: totals.delivery,
+      grandTotal: totals.grandTotal,
+      paid: totals.paid,
+      remaining: totals.remaining
+    };
+
+    const finish = (id, serial) => {
+      editingId = id;
+      document.getElementById('invNumber').textContent = serial;
+      showEditBadge(serial);
+      calcTotal();
+      openPreview();
+      showToast('✅ تم الحفظ');
+    };
+
+    if (editingId) {
+      // تحديث فاتورة موجودة (بنفس الرقم التسلسلي)
+      db.ref('invoices/' + editingId).update(base)
+        .then(() => finish(editingId, document.getElementById('invNumber').textContent))
+        .catch(() => showToast('❌ حصل خطأ في الحفظ'));
+    } else {
+      // فاتورة جديدة: سيريال بيتزايد تلقائي
+      db.ref('meta/lastInvoiceNumber').transaction(n => (n || 0) + 1).then(res => {
+        const serial = res.snapshot.val();
+        const newRef = db.ref('invoices').push();
+        newRef.set(Object.assign({}, base, { serialNumber: serial, createdAt: firebase.database.ServerValue.TIMESTAMP }))
+          .then(() => finish(newRef.key, serial))
+          .catch(() => showToast('❌ حصل خطأ في الحفظ'));
+      }).catch(() => showToast('❌ حصل خطأ في الحفظ'));
+    }
+  }
+
+  function showEditBadge(serial) {
+    document.getElementById('editBadge').style.display = 'flex';
+    document.getElementById('editBadgeText').textContent = '✏️ بتعدّل فاتورة رقم ' + serial;
+  }
+
+  function newInvoice() {
+    editingId = null;
+    document.getElementById('clientName').value = '';
+    document.getElementById('clientPhone').value = '';
+    document.getElementById('invoiceDate').valueAsDate = new Date();
+    document.getElementById('deliveryFee').value = 0;
+    document.getElementById('paidAmount').value = 0;
+    document.getElementById('invNumber').textContent = 'جديدة';
+    document.getElementById('editBadge').style.display = 'none';
+    clearItems(); addItem(); addItem(); calcTotal();
+    switchTab('new');
+  }
+
+  // ================== عرض المحفوظ ==================
+  let statusFilter = 'all';
+
+  function setFilter(f) {
+    statusFilter = f;
+    document.getElementById('chipAll').classList.toggle('active', f === 'all');
+    document.getElementById('chipDebt').classList.toggle('active', f === 'debt');
+    document.getElementById('chipPaid').classList.toggle('active', f === 'paid');
+    renderSaved();
+  }
+
+  function renderSaved() {
+    const q = (document.getElementById('searchInput').value || '').trim();
+    const list = document.getElementById('savedList');
+    const entries = Object.entries(allInvoices)
+      .map(([id, v]) => ({ id, ...v }))
+      .filter(v => !q || (v.clientName || '').includes(q) || (v.clientPhone || '').includes(q))
+      .filter(v => statusFilter === 'all' || (statusFilter === 'debt' ? (v.remaining || 0) > 0 : (v.remaining || 0) <= 0))
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+    if (!entries.length) {
+      const msgs = { all: '📭 لسه مفيش فواتير محفوظة', debt: '🎉 مفيش فواتير عليها مديونية', paid: '📭 لسه مفيش فواتير مدفوعة بالكامل' };
+      list.innerHTML = '<div class="empty-msg">' + (q ? '🔍 مفيش نتائج للبحث ده' : msgs[statusFilter]) + '</div>';
+      return;
+    }
+    list.innerHTML = entries.map(v => {
+      const hasDebt = (v.remaining || 0) > 0;
+      return `
+      <div class="inv-card">
+        <div class="row1">
+          <span class="name">👤 ${escapeHtml(v.clientName || '—')}</span>
+          <span class="total">${(v.grandTotal || 0).toFixed(2)} ج.م</span>
+        </div>
+        <div class="meta">🧾 رقم ${v.serialNumber || '—'} &nbsp;•&nbsp; 📅 ${v.date || '—'} &nbsp;•&nbsp; 📞 ${escapeHtml(v.clientPhone || '—')}</div>
+        ${hasDebt ? `<div class="debt-badge">💳 المتبقي: ${(v.remaining || 0).toFixed(2)} ج.م</div>` : `<div class="meta" style="color:#1d9e5b;font-weight:800;">🟢 مدفوعة بالكامل</div>`}
+        <div class="btns">
+          ${hasDebt ? `<button class="mini-btn mini-pay" onclick="payFull('${v.id}')">✅ تم الدفع بالكامل</button>` : ''}
+          <button class="mini-btn mini-view" onclick="viewInvoice('${v.id}')">👁️ عرض</button>
+          <button class="mini-btn mini-edit" onclick="editInvoice('${v.id}')">✏️ تعديل</button>
+          <button class="mini-btn mini-del" onclick="deleteInvoice('${v.id}')">🗑️</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function payFull(id) {
+    const v = allInvoices[id];
+    if (!v) return;
+    if (!confirm('تسجيل الدفع بالكامل للفاتورة رقم ' + (v.serialNumber || '—') + '؟')) return;
+    db.ref('invoices/' + id).update({ paid: v.grandTotal || 0, remaining: 0 })
+      .then(() => {
+        if (editingId === id) {
+          document.getElementById('paidAmount').value = v.grandTotal || 0;
+          calcTotal();
+        }
+        showToast('🎉 تم تسجيل الدفع بالكامل');
+      })
+      .catch(() => showToast('❌ حصل خطأ'));
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function loadInvoiceToForm(v) {
+    document.getElementById('clientName').value = v.clientName || '';
+    document.getElementById('clientPhone').value = v.clientPhone || '';
+    document.getElementById('invoiceDate').value = v.date || '';
+    document.getElementById('deliveryFee').value = v.delivery || 0;
+    document.getElementById('paidAmount').value = v.paid || 0;
+    clearItems();
+    (v.items || []).forEach(it => addItem(it.name, it.qty, it.price));
+    if (!(v.items || []).length) addItem();
+    calcTotal();
+  }
+
+  function setEditing(id, v) {
+    editingId = id;
+    document.getElementById('invNumber').textContent = v.serialNumber || '—';
+    if (v.serialNumber) showEditBadge(v.serialNumber);
+  }
+
+  function viewInvoice(id) {
+    const v = allInvoices[id];
+    if (!v) return;
+    loadInvoiceToForm(v);
+    setEditing(id, v);
+    switchTab('new');
+    setTimeout(openPreview, 100);
+  }
+
+  function editInvoice(id) {
+    const v = allInvoices[id];
+    if (!v) return;
+    loadInvoiceToForm(v);
+    setEditing(id, v);
+    switchTab('new');
+    showToast('✏️ عدّل الفاتورة وبعدين دوس حفظ ومعاينة');
+  }
+
+  function deleteInvoice(id) {
+    if (!confirm('متأكد إنك عايز تحذف الفاتورة دي؟')) return;
+    db.ref('invoices/' + id).remove()
+      .then(() => {
+        if (editingId === id) {
+          editingId = null;
+          document.getElementById('invNumber').textContent = 'جديدة';
+          document.getElementById('editBadge').style.display = 'none';
+        }
+        showToast('🗑️ تم حذف الفاتورة');
+      })
+      .catch(() => showToast('❌ حصل خطأ في الحذف'));
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    setTimeout(() => { t.style.display = 'none'; }, 2500);
+  }
+
+  // ================== المعاينة والتحميل ==================
   function buildCleanInvoice() {
     const clone = document.getElementById('invoice').cloneNode(true);
     clone.querySelectorAll('input').forEach(inp => {
@@ -312,8 +637,8 @@
       '.invoice>*:not(.watermark){position:relative;z-index:1;} ' +
       '.plain-text{font-size:13px;font-weight:700;color:#7a2c4e;} td .plain-text{display:block;text-align:center;} ' +
       '.header{background:linear-gradient(160deg,#ff9ec7,#ff65a3 45%,#d63384);color:#fff;padding:16px 16px 14px;text-align:center;position:relative;overflow:hidden;} ' +
-      '.header img.logo{width:64px;height:64px;object-fit:cover;border-radius:50%;border:4px solid #fff;box-shadow:0 6px 18px rgba(0,0,0,.25);} ' +
-      '.header h1{font-size:21px;letter-spacing:.5px;margin-top:8px;} .header p{margin-top:3px;opacity:.95;font-size:12.5px;} ' +
+      '.header img.logo{width:64px;height:64px;object-fit:cover;border-radius:50%;border:3px solid #fff;box-shadow:0 4px 12px rgba(0,0,0,.22);} ' +
+      '.header h1{font-size:21px;margin-top:6px;} .header p{margin-top:2px;opacity:.95;font-size:12px;} ' +
       '.section{padding:10px 16px 0;} .section-title{font-size:13px;font-weight:800;color:#a8275f;margin-bottom:7px;display:flex;align-items:center;gap:6px;} ' +
       '.section-title::after{content:"";flex:1;height:1.5px;background:linear-gradient(90deg,#ffc2d9,transparent);} ' +
       '.field{margin-bottom:0;} .field label{display:block;font-size:11.5px;color:#b34a78;margin-bottom:3px;font-weight:700;} ' +
